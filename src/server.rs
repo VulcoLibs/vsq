@@ -18,10 +18,7 @@ pub struct ServerQuery {
 impl ServerQuery {
     pub async fn new(addr: SocketAddr) -> std::io::Result<Self> {
         let sock = UdpSocket::bind((Ipv4Addr::UNSPECIFIED, 0)).await?;
-
-        println!("SQ - Connecting");
         sock.connect(addr).await?;
-        println!("SQ - Connected");
 
         Ok(Self {
             sock,
@@ -30,10 +27,8 @@ impl ServerQuery {
 
     pub async fn send_packet(&self, mut packet: ReqPacket) -> std::io::Result<ResPacket> {
         packet.send(&self.sock).await?;
-        println!("SQ - Sent Packet 0x{:X}", packet.header);
 
         let mut res = ResPacket::rcv(&self.sock).await?;
-        println!("SQ - Received Packet 0x{:X}", res.header);
 
         if res.header == ResPacket::HEADER_CHALLENGE {
             if res.payload.len() != CHALLENGE_SIZE {
@@ -48,10 +43,8 @@ impl ServerQuery {
 
             packet.challenge = Some(challenge);
             packet.send(&self.sock).await?;
-            println!("SQ - Sent Packet 0x{:X}", packet.header);
 
             res = ResPacket::rcv(&self.sock).await?;
-            println!("SQ - Received Packet 0x{:X}", res.header);
         }
 
         Ok(res)
