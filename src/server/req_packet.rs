@@ -4,19 +4,20 @@ static PACKET_PREFIX: [u8; 4] = [0xFF, 0xFF, 0xFF, 0xFF];
 
 pub(super) enum PacketType {
     INFO,
+    RULES,
 }
 
 pub(super) struct ReqPacket {
     pub header: u8,
-    pub payload: String,
+    pub payload: Option<&'static str>,
     pub challenge: Option<i32>,
 }
 
 impl ReqPacket {
-    pub fn new(header: u8, payload: impl ToString, challenge: Option<i32>) -> Self {
+    pub fn new(header: u8, payload: Option<&'static str>, challenge: Option<i32>) -> Self {
         Self {
             header,
-            payload: payload.to_string(),
+            payload,
             challenge,
         }
     }
@@ -24,8 +25,11 @@ impl ReqPacket {
     pub fn from_type(packet_type: PacketType) -> Self {
         match packet_type {
             PacketType::INFO => {
-                Self::new(0x54, "Source Engine Query", None)
-            }
+                Self::new(0x54, Some("Source Engine Query"), None)
+            },
+            PacketType::RULES => {
+                Self::new(0x56, None, None)
+            },
         }
     }
 
@@ -43,8 +47,11 @@ impl ReqPacket {
         buffer.extend(PACKET_PREFIX);
 
         buffer.push(self.header);
-        buffer.extend(self.payload.as_bytes());
-        buffer.push(0x00);
+
+        if let Some(payload) = self.payload {
+            buffer.extend(payload.as_bytes());
+            buffer.push(0x00);
+        }
 
         if let Some(challenge) = self.challenge {
             buffer.extend(challenge.to_be_bytes());

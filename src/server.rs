@@ -55,4 +55,10 @@ impl ServerQuery {
             ReqPacket::from_type(PacketType::INFO)
         ).await
     }
+
+    pub async fn a2s_rules(&self) -> std::io::Result<ResPacket> {
+        self.send_packet(
+            ReqPacket::from_type(PacketType::RULES)
+        ).await
+    }
 }
