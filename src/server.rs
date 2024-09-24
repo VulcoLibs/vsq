@@ -41,6 +41,10 @@ impl ServerQuery {
                 buf
             });
 
+            if packet.header == ResPacket::HEADER_A2S_RULES {
+                packet.payload = None;
+            }
+
             packet.challenge = Some(challenge);
             packet.send(&self.sock).await?;
 

@@ -9,6 +9,7 @@ pub struct ResPacket {
 
 impl ResPacket {
     pub const HEADER_CHALLENGE: u8 = 0x41;
+    pub const HEADER_A2S_RULES: u8 = 0x56;
 
     pub async fn rcv(sock: &UdpSocket) -> std::io::Result<Self> {
         let mut buf = vec![0u8; PACKET_SIZE];

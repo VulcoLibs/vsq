@@ -9,12 +9,12 @@ pub(super) enum PacketType {
 
 pub(super) struct ReqPacket {
     pub header: u8,
-    pub payload: Option<&'static str>,
+    pub payload: Option<&'static [u8]>,
     pub challenge: Option<i32>,
 }
 
 impl ReqPacket {
-    pub fn new(header: u8, payload: Option<&'static str>, challenge: Option<i32>) -> Self {
+    pub fn new(header: u8, payload: Option<&'static [u8]>, challenge: Option<i32>) -> Self {
         Self {
             header,
             payload,
@@ -25,10 +25,10 @@ impl ReqPacket {
     pub fn from_type(packet_type: PacketType) -> Self {
         match packet_type {
             PacketType::INFO => {
-                Self::new(0x54, Some("Source Engine Query"), None)
+                Self::new(0x54, Some(b"Source Engine Query\0"), None)
             },
             PacketType::RULES => {
-                Self::new(0x56, None, None)
+                Self::new(0x56, Some(&[0xFF, 0xFF, 0xFF, 0xFF]), None)
             },
         }
     }
@@ -49,8 +49,7 @@ impl ReqPacket {
         buffer.push(self.header);
 
         if let Some(payload) = self.payload {
-            buffer.extend(payload.as_bytes());
-            buffer.push(0x00);
+            buffer.extend(payload);
         }
 
         if let Some(challenge) = self.challenge {
