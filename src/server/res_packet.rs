@@ -15,6 +15,10 @@ impl ResPacket {
         let mut buf = vec![0u8; PACKET_SIZE];
         let len = sock.recv(&mut buf).await?;
 
+        if len <= 4 {
+            return Err(std::io::Error::from(std::io::ErrorKind::InvalidData));
+        }
+
         let read_buf = &buf[4..len];
 
         Ok(Self {
