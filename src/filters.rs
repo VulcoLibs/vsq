@@ -5,13 +5,14 @@ pub struct Filters {
 }
 
 impl Filters {
-    pub fn as_filter_string(&self) -> String {
-        let mut buf = format!("\\appid\\{}", self.app_id);
+    pub fn as_bytes(&self) -> Vec<u8> {
+        let mut buf = format!("\\appid\\{}", self.app_id).into_bytes();
 
         if self.no_password {
-            buf.push_str("\\\\password\\0");
+            buf.extend(b"\\password\\0");
         }
 
+        buf.push(0x00);
         buf
     }
 }

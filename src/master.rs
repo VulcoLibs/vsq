@@ -49,7 +49,7 @@ impl MasterQuery {
                 let mut packet = vec![0x31, 0xFF];
                 packet.extend(seed.to_string().into_bytes());
                 packet.push(0x00);
-                packet.extend(filters.as_filter_string().into_bytes());
+                packet.extend(filters.as_bytes());
                 packet.push(0x00);
 
                 sock.send(&packet).await?;
