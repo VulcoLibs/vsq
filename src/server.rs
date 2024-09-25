@@ -3,6 +3,7 @@ use std::net::{Ipv4Addr, SocketAddr};
 use tokio::net::UdpSocket;
 
 const CHALLENGE_SIZE: usize = size_of::<i32>();
+const CHALLENGE_COUNTER_MAX: usize = 10;
 
 mod req_packet;
 mod res_packet;
@@ -28,9 +29,10 @@ impl ServerQuery {
     pub async fn send_packet(&self, mut packet: ReqPacket) -> std::io::Result<ResPacket> {
         packet.send(&self.sock).await?;
 
+        let mut challenge_counter = 0;
         let mut res = ResPacket::rcv(&self.sock).await?;
 
-        if res.header == ResPacket::HEADER_CHALLENGE {
+        while res.header == ResPacket::HEADER_CHALLENGE && challenge_counter < CHALLENGE_COUNTER_MAX {
             if res.payload.len() != CHALLENGE_SIZE {
                 return Err(std::io::Error::from(std::io::ErrorKind::InvalidData));
             }
@@ -49,6 +51,7 @@ impl ServerQuery {
             packet.send(&self.sock).await?;
 
             res = ResPacket::rcv(&self.sock).await?;
+            challenge_counter += 1;
         }
 
         Ok(res)
