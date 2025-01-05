@@ -93,15 +93,12 @@ impl MasterQuery {
                         }
 
                         seed = addr;
+
+                        #[cfg(feature = "signals")]
+                        packet_signal.recv().await;
                     }
                 }
 
-                #[cfg(feature = "signals")]
-                if packet_signal.recv().await.is_none() {
-                    tokio::time::sleep(Duration::from_secs(4)).await;
-                };
-
-                #[cfg(not(feature = "signals"))]
                 tokio::time::sleep(Duration::from_secs(4)).await;
             }
 
