@@ -28,6 +28,8 @@ impl MasterQuery {
         master_port: u16,
         filters: Filters,
         callback: tokio::sync::mpsc::Sender<SocketAddr>,
+        #[cfg(feature = "signals")]
+        mut packet_signal: tokio::sync::mpsc::Receiver<()>,
     ) -> std::io::Result<VSQTask> {
         let master_addr = SocketAddr::new(
             self
@@ -94,6 +96,12 @@ impl MasterQuery {
                     }
                 }
 
+                #[cfg(feature = "signals")]
+                if packet_signal.recv().await.is_none() {
+                    tokio::time::sleep(Duration::from_secs(4)).await;
+                };
+
+                #[cfg(not(feature = "signals"))]
                 tokio::time::sleep(Duration::from_secs(4)).await;
             }
 
