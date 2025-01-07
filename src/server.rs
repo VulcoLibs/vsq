@@ -44,13 +44,6 @@ impl ServerQuery {
                 buf
             });
 
-            #[cfg(debug_assertions)]
-            if let Ok(addr) = self.sock.peer_addr() {
-                debug!("[{}] Received challenge packet [0x{:X}] [{:b}]!", addr, res.header, challenge);
-            } else {
-                debug!("Received challenge packet [0x{:X}] [{:b}]!", res.header, challenge);
-            }
-
             if packet.header == ResPacket::HEADER_A2S_RULES {
                 packet.payload = None;
             }
