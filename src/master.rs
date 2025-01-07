@@ -3,6 +3,7 @@ use std::str::FromStr;
 use std::time::Duration;
 use tokio::net::UdpSocket;
 use tokio::task::JoinHandle;
+use tokio::time::{interval, sleep};
 use crate::Filters;
 
 mod dns;
@@ -15,6 +16,8 @@ pub struct MasterQuery {
 }
 
 impl MasterQuery {
+    /// It's required to wait 10 seconds between packets in order to not get blocked.
+    const RATE_LIMIT: Duration = Duration::from_secs(10);
     const UNSPECIFIED_ADDR: SocketAddr = SocketAddr::V4(
         SocketAddrV4::new(Ipv4Addr::UNSPECIFIED, 0)
     );
@@ -53,6 +56,9 @@ impl MasterQuery {
             let mut buf = [0u8; RESPONSE_PACKET_BUFFER_SIZE];
             let mut seed = Self::UNSPECIFIED_ADDR;
 
+            let mut interval = interval(Self::RATE_LIMIT);
+            interval.tick().await;
+
             while wait {
                 let mut packet = vec![0x31, 0xFF];
                 packet.extend(seed.to_string().into_bytes());
@@ -61,21 +67,11 @@ impl MasterQuery {
                 packet.push(0x00);
 
                 let read_buf = {
-                    let len = match Self::get_packet_response(
+                    let len = Self::get_packet_response(
                         &sock,
                         &packet,
                         &mut buf,
-                    ).await? {
-                        Some(len) => len,
-                        None => {
-                            // Restart connection on multiple failed tries.
-                            debug!("Failed to get the response multiple times from the Master, re-connecting...");
-                            drop(sock);
-                            sock = UdpSocket::bind(Self::UNSPECIFIED_ADDR).await?;
-                            sock.connect(master_addr).await?;
-                            continue;
-                        }
-                    };
+                    ).await?;
 
                     if len == 0 {
                         break;
@@ -105,7 +101,7 @@ impl MasterQuery {
                     }
                 }
 
-                tokio::time::sleep(Duration::from_secs(4)).await;
+                interval.tick().await;
             }
 
             drop(callback);
@@ -124,39 +120,19 @@ impl MasterQuery {
         SocketAddr::new(ip, port)
     }
 
-    async fn get_packet_response(sock: &UdpSocket, packet: &Vec<u8>, buffer: &mut [u8]) -> std::io::Result<Option<usize>> {
-        let mut retry_tries = 0;
-        let mut result = None;
+    async fn get_packet_response(sock: &UdpSocket, packet: &Vec<u8>, buffer: &mut [u8]) -> std::io::Result<usize> {
+        sock.send(&packet).await?;
 
-        // Send packets until response is given
-        while {
-            sock.send(&packet).await?;
-
-            match tokio::time::timeout(
-                Duration::from_secs(4),
-                sock.recv(buffer)
-            ).await {
-                Ok(len) => {
-                    result = Some(len?);
-                    false
-                }
-                Err(err) => {
-                    error!("Failed to receive the packet from Master: {}", err);
-                    true
-                }
-            }
-        } {
-            retry_tries += 1;
-
-            if retry_tries > 6 {
-                break;
-            }
-
-            // Wait 10 seconds for each try
-            tokio::time::sleep(Duration::from_secs(10)).await;
-        }
-
-        Ok(result)
+        tokio::time::timeout(
+            Duration::from_secs(4),
+            sock.recv(buffer)
+        ).await.map_err(|err| {
+            error!("Failed to receive the packet from Master: {}", err);
+            std::io::Error::new(
+                std::io::ErrorKind::TimedOut,
+                err,
+            )
+        })?
     }
 }
 
