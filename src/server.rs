@@ -26,7 +26,7 @@ impl ServerQuery {
         })
     }
 
-    pub async fn send_packet(&self, mut packet: ReqPacket) -> std::io::Result<ResPacket> {
+    async fn send_packet(&self, mut packet: ReqPacket) -> std::io::Result<ResPacket> {
         packet.send(&self.sock).await?;
 
         let mut challenge_counter = 0;

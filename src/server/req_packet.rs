@@ -8,9 +8,9 @@ pub(super) enum PacketType {
 }
 
 pub(super) struct ReqPacket {
-    pub header: u8,
-    pub payload: Option<&'static [u8]>,
-    pub challenge: Option<i32>,
+    pub(super) header: u8,
+    pub(super) payload: Option<&'static [u8]>,
+    pub(super) challenge: Option<i32>,
 }
 
 impl ReqPacket {

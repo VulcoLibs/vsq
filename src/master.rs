@@ -1,9 +1,8 @@
 use std::net::{IpAddr, Ipv4Addr, SocketAddr, SocketAddrV4};
-use std::str::FromStr;
 use std::time::Duration;
 use tokio::net::UdpSocket;
 use tokio::task::JoinHandle;
-use tokio::time::{interval, sleep};
+use tokio::time::interval;
 use crate::Filters;
 
 mod dns;
@@ -48,7 +47,7 @@ impl MasterQuery {
             master_port
         );
 
-        let mut sock = UdpSocket::bind(Self::UNSPECIFIED_ADDR).await?;
+        let sock = UdpSocket::bind(Self::UNSPECIFIED_ADDR).await?;
         sock.connect(master_addr).await?;
 
         let handle = tokio::spawn(async move {
