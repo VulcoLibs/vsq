@@ -64,6 +64,7 @@ impl MasterQuery {
                         Some(len) => len,
                         None => {
                             // Restart connection on multiple failed tries.
+                            debug!("Failed to get the response multiple times from the Master, re-connecting...");
                             drop(sock);
                             sock = UdpSocket::bind((Ipv4Addr::UNSPECIFIED, 0)).await?;
                             sock.connect(master_addr).await?;
@@ -134,7 +135,10 @@ impl MasterQuery {
                     result = Some(len?);
                     false
                 }
-                Err(_) => true
+                Err(err) => {
+                    error!("Failed to receive the packet from Master: {}", err);
+                    true
+                }
             }
         } {
             retry_tries += 1;

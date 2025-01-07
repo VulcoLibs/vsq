@@ -34,6 +34,7 @@ impl ServerQuery {
 
         while res.header == ResPacket::HEADER_CHALLENGE && challenge_counter < CHALLENGE_COUNTER_MAX {
             if res.payload.len() != CHALLENGE_SIZE {
+                error!("Received packet with a challenge header, but invalid payload!");
                 return Err(std::io::Error::from(std::io::ErrorKind::InvalidData));
             }
 
@@ -42,6 +43,13 @@ impl ServerQuery {
                 buf.copy_from_slice(&*res.payload);
                 buf
             });
+
+            #[cfg(debug_assertions)]
+            if let Ok(addr) = self.sock.peer_addr() {
+                debug!("[{}] Received challenge packet [0x{:X}] [{:b}]!", addr, res.header, challenge);
+            } else {
+                debug!("Received challenge packet [0x{:X}] [{:b}]!", res.header, challenge);
+            }
 
             if packet.header == ResPacket::HEADER_A2S_RULES {
                 packet.payload = None;

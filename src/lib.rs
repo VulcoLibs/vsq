@@ -1,3 +1,6 @@
+#[macro_use]
+extern crate tracing;
+
 mod master;
 mod server;
 mod filters;
