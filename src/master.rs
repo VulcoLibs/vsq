@@ -1,4 +1,5 @@
-use std::net::{IpAddr, Ipv4Addr, SocketAddr};
+use std::net::{IpAddr, Ipv4Addr, SocketAddr, SocketAddrV4};
+use std::str::FromStr;
 use std::time::Duration;
 use tokio::net::UdpSocket;
 use tokio::task::JoinHandle;
@@ -14,6 +15,10 @@ pub struct MasterQuery {
 }
 
 impl MasterQuery {
+    const UNSPECIFIED_ADDR: SocketAddr = SocketAddr::V4(
+        SocketAddrV4::new(Ipv4Addr::UNSPECIFIED, 0)
+    );
+
     pub async fn new() -> Self {
         let dns = dns::DNS::new().await;
 
@@ -40,13 +45,13 @@ impl MasterQuery {
             master_port
         );
 
-        let mut sock = UdpSocket::bind((Ipv4Addr::UNSPECIFIED, 0)).await?;
+        let mut sock = UdpSocket::bind(Self::UNSPECIFIED_ADDR).await?;
         sock.connect(master_addr).await?;
 
         let handle = tokio::spawn(async move {
             let mut wait = true;
             let mut buf = [0u8; RESPONSE_PACKET_BUFFER_SIZE];
-            let mut seed = SocketAddr::from((Ipv4Addr::UNSPECIFIED, 0));
+            let mut seed = Self::UNSPECIFIED_ADDR;
 
             while wait {
                 let mut packet = vec![0x31, 0xFF];
@@ -66,7 +71,7 @@ impl MasterQuery {
                             // Restart connection on multiple failed tries.
                             debug!("Failed to get the response multiple times from the Master, re-connecting...");
                             drop(sock);
-                            sock = UdpSocket::bind((Ipv4Addr::UNSPECIFIED, 0)).await?;
+                            sock = UdpSocket::bind(Self::UNSPECIFIED_ADDR).await?;
                             sock.connect(master_addr).await?;
                             continue;
                         }
